@@ -8,7 +8,7 @@ git add .
 
 :: Crear mensaje de commit con fecha y hora
 for /f %%i in ('powershell -command "Get-Date -Format yyyy-MM-dd_HH:mm:ss"') do set fecha=%%i
-git commit -m "Actualización automática: %fecha%"
+git commit -m "Actualizacion automatica: %fecha%"
 
 :: Hacer push
 git push origin main
