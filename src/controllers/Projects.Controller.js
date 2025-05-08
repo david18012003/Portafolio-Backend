@@ -132,3 +132,20 @@ export const deleteProjectById = async (req, res) => {
     res.status(500).json({ error: "Error al eliminar el proyecto" });
   }
 };
+// Obtener proyectos por ID de usuario
+export const getProjectsByUserId = async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    const [rows] = await pool.query("SELECT * FROM projects WHERE user_id = ?", [user_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No se encontraron proyectos para este usuario" });
+    }
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener proyectos por user_id:", error.message);
+    res.status(500).json({ error: "Error al obtener los proyectos del usuario" });
+  }
+};

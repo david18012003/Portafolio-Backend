@@ -5,6 +5,7 @@ import {
   createProject,
   updateProjectById,
   deleteProjectById,
+  getProjectsByUserId,
 } from "../controllers/Projects.Controller.js";
 import { body, param } from "express-validator";
 import { handleValidationErrors } from "../middlewares/handleValidationErrors.js";
@@ -15,6 +16,21 @@ const routesProjects = Router();
  * @desc Listar todos los proyectos (sin paginación)
  */
 routesProjects.get("/proyectos", getAllProjects);
+
+/**
+ /**
+ * @desc Obtener todos los proyectos de un usuario por su ID
+ */
+routesProjects.get(
+  "/listar/:user_id",
+  [
+    param("user_id")
+      .isInt().withMessage("El user_id debe ser un número entero")
+      .toInt(),
+    handleValidationErrors,
+  ],
+  getProjectsByUserId
+);
 
 /**
  * @desc Buscar un proyecto por ID
