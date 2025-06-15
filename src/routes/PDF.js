@@ -42,7 +42,7 @@ pdfRoutes.get("/pdf", async (req, res) => {
 
     const doc = new PDFDocument({ size: "A4", margin: 0 });
 
-    res.setHeader("Content-disposition", "attachment; filename=HojaDeVida.pdf");
+    res.setHeader("Content-disposition", "attachment; filename=Cesar_David_Carrillo_RodriguezCV.pdf");
     res.setHeader("Content-type", "application/pdf");
     doc.pipe(res);
 
