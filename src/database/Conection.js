@@ -3,11 +3,12 @@ import dotenv from 'dotenv';
 dotenv.config();    
 
 export const pool = createPool({
-    host: dotenv.DB_HOST || 'localhost',
-    user: dotenv.DB_USER || 'root',
-    password: dotenv.DB_PASSWORD || '',
-    database: dotenv.DB_NAME || 'portafolio_db',
-    port: dotenv.DB_PORT || 3306
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+
 });
 
 pool.getConnection()

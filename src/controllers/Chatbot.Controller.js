@@ -54,8 +54,8 @@ export const chatWithCohere = async (req, res) => {
     Tu función es responder preguntas sobre ${perfil.name}, su experiencia, habilidades y objetivos.
     Habla en tercera persona con tono profesional, claro y amable.
     Cuando menciones enlaces, hazlo en formato Markdown.
-    si te piden mi cv u hoja de vida, puedes compartir este enlace:http://${IP}:3000/api/pdf
-    puedes poner [descargar pdf](http://${IP}:3000/api/pdf) `;
+    si te piden mi cv u hoja de vida, puedes compartir este enlace:${IP}/api/pdf
+    puedes poner [descargar pdf](${IP}/api/pdf) `;
     
     
 
