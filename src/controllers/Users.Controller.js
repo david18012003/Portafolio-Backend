@@ -60,14 +60,14 @@ export const getUserById = async (req, res) => {
 export const createUser = async (req, res) => {
   try {
     const {
-      name, email, linkedin, github, bio, skills, languages,
+      name, email, password, linkedin, github, bio, skills, languages,
       experience, education, phone, address, license,
       cv_summary, age
     } = req.body;
 
     const profile_picture_name = req.file?.filename || null;
 
-    if (!name || !email || !phone) {
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({ error: "Faltan campos requeridos para crear el usuario" });
     }
 
@@ -76,6 +76,7 @@ export const createUser = async (req, res) => {
     const [result] = await pool.query("INSERT INTO users SET ?", {
       name,
       email,
+      password, // Asegúrate de hashear la contraseña antes de guardarla
       linkedin,
       github,
       bio,
@@ -95,7 +96,7 @@ export const createUser = async (req, res) => {
     res.status(201).json({ message: "Usuario creado con éxito", userId: result.insertId });
   } catch (error) {
     console.error("Error al crear el usuario:", error.message);
-    res.status(500).json({ error: "Error al crear el usuario" });
+    res.status(500).json({ error: "Error al crear el usuario por "+ error.message });
   }
 };
 
@@ -104,7 +105,7 @@ export const updateUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      name, email, linkedin, github, bio, skills, languages,
+      name, email,password, linkedin, github, bio, skills, languages,
       experience, education, phone, address, license,
       cv_summary, age
     } = req.body;
@@ -120,6 +121,7 @@ export const updateUserById = async (req, res) => {
     const updatedUser = {
       name: name ?? existing[0].name,
       email: email ?? existing[0].email,
+      password: password ?? existing[0].password, // Asegúrate de hashear la contraseña si se actualiza
       linkedin: linkedin ?? existing[0].linkedin,
       github: github ?? existing[0].github,
       bio: bio ?? existing[0].bio,
@@ -139,7 +141,7 @@ export const updateUserById = async (req, res) => {
 
     const [result] = await pool.query(
       `UPDATE users SET 
-        name = ?, email = ?, linkedin = ?, github = ?, bio = ?, 
+        name = ?, email = ?, password = ?, linkedin = ?, github = ?, bio = ?, 
         skills = ?, languages = ?, experience = ?, education = ?, phone = ?, 
         address = ?, license = ?, cv_summary = ?, age = ?, profile_picture_name = ?, 
         updated_at = ? 
@@ -147,6 +149,7 @@ export const updateUserById = async (req, res) => {
       [
         updatedUser.name,
         updatedUser.email,
+        updatedUser.password, // Asegúrate de hashear la contraseña antes de guardarla
         updatedUser.linkedin,
         updatedUser.github,
         updatedUser.bio,

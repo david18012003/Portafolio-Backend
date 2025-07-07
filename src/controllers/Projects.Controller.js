@@ -25,22 +25,23 @@ export const getProjectById = async (req, res) => {
   }
 };
 
-// Crear nuevo proyecto
+// Crear proyecto
 export const createProject = async (req, res) => {
   try {
-    const { name, description, technologies, status, user_id, link } = req.body;
+    const { title, description, technologies, status, user_id, link } = req.body;
     const image = req.file?.filename || null;
     const created_at = new Date();
 
-    if (!name || !description || !status || !user_id) {
+    if (!title || !description || !status || !user_id) {
       return res.status(400).json({ error: "Faltan campos requeridos para crear el proyecto" });
     }
 
     const techs = technologies ? JSON.stringify(technologies) : null;
 
     const [result] = await pool.query(
-      "INSERT INTO projects (name, description, technologies, status, user_id, link, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [name, description, techs, status, user_id, link, image, created_at]
+      `INSERT INTO projects (title, description, technologies, status, user_id, link, image, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, techs, status, user_id, link, image, created_at]
     );
 
     res.status(201).json({ message: "Proyecto creado con éxito", projectId: result.insertId });
@@ -53,7 +54,7 @@ export const createProject = async (req, res) => {
 // Actualizar proyecto
 export const updateProjectById = async (req, res) => {
   const { id } = req.params;
-  const { name, description, technologies, status, link } = req.body;
+  const { title, description, technologies, status, link } = req.body;
   const newImage = req.file?.filename;
 
   try {
@@ -61,20 +62,20 @@ export const updateProjectById = async (req, res) => {
     if (existing.length === 0) return res.status(404).json({ message: "Proyecto no encontrado" });
 
     const updatedProject = {
-      name: name ?? existing[0].name,
+      title: title ?? existing[0].title,
       description: description ?? existing[0].description,
       technologies: technologies ? JSON.stringify(technologies) : existing[0].technologies,
       status: status ?? existing[0].status,
       link: link ?? existing[0].link,
-      image: newImage ?? existing[0].image
+      image: newImage ?? existing[0].image,
     };
 
     const updated_at = new Date();
 
     const [result] = await pool.query(
-      "UPDATE projects SET name = ?, description = ?, technologies = ?, status = ?, link = ?, image = ?, updated_at = ? WHERE id = ?",
+      `UPDATE projects SET title = ?, description = ?, technologies = ?, status = ?, link = ?, image = ?, updated_at = ? WHERE id = ?`,
       [
-        updatedProject.name,
+        updatedProject.title,
         updatedProject.description,
         updatedProject.technologies,
         updatedProject.status,
@@ -95,6 +96,7 @@ export const updateProjectById = async (req, res) => {
     res.status(500).json({ error: "Error al actualizar el proyecto" });
   }
 };
+
 
 // Eliminar proyecto
 export const deleteProjectById = async (req, res) => {
