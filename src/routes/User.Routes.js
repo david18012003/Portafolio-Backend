@@ -1,18 +1,14 @@
-import { Router } from "express";
-import { 
-  getAllUsers,
-  getUserById,
-  createUser,
-  updateUserById,
-  deleteUserById,
-} from "../controllers/Users.Controller.js";
+import express from 'express';
 
-const routesUsers = Router();
+import { upload } from '../middlewares/Uploads.js';
+import { createUser, deleteUserById, getAllUsers, getUserById, updateUserById } from '../controllers/Users.Controller.js';
 
-routesUsers.get("/listar", getAllUsers);
-routesUsers.get("/buscar/:id", getUserById);
-routesUsers.post("/registrar", createUser);
-routesUsers.put("/actualizar/:id", updateUserById);
-routesUsers.delete("/eliminar/:id", deleteUserById);
+const router = express.Router();
 
-export default routesUsers;
+router.get('/', getAllUsers);
+router.get('/:id', getUserById);
+router.post('/', upload.single('photo'), createUser); 
+router.put('/:id', upload.single('photo'), updateUserById); 
+router.delete('/:id', deleteUserById);
+
+export default router;

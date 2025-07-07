@@ -1,11 +1,31 @@
 import { pool } from "../database/Conection.js";
 
+export const uploadUserPhoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fileName = req.file.filename;
 
+    // Verificar si el usuario existe
+    const [user] = await pool.query("SELECT id FROM users WHERE id = ?", [id]);
+    if (user.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    // Actualizar campo profile_picture_name
+    await pool.query("UPDATE users SET profile_picture_name = ? WHERE id = ?", [fileName, id]);
+
+    res.json({ message: "Imagen subida correctamente", file: fileName });
+  } catch (error) {
+    console.error("Error al subir imagen:", error.message);
+    res.status(500).json({ error: "Error al subir la imagen" });
+  }
+};
+
+// Obtener todos los usuarios
 export const getAllUsers = async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM users");
 
-    // Verificamos si se obtuvieron datos
     if (rows.length === 0) {
       return res.status(404).json({ message: "No se encontraron usuarios" });
     }
@@ -36,9 +56,16 @@ export const getUserById = async (req, res) => {
   }
 };
 
+// Crear nuevo usuario con imagen
 export const createUser = async (req, res) => {
   try {
-    const { name, email, linkedin, github, bio, skills, languages, experience, education, phone } = req.body;
+    const {
+      name, email, linkedin, github, bio, skills, languages,
+      experience, education, phone, address, license,
+      cv_summary, age
+    } = req.body;
+
+    const profile_picture_name = req.file?.filename || null;
 
     if (!name || !email || !phone) {
       return res.status(400).json({ error: "Faltan campos requeridos para crear el usuario" });
@@ -46,25 +73,23 @@ export const createUser = async (req, res) => {
 
     const created_at = new Date();
 
-    // Convertir skills y languages a JSON antes de la inserción
-    const skillsJson = skills ? JSON.stringify(skills) : null;
-    const languagesJson = languages ? JSON.stringify(languages) : null;
-    const experienceJson = experience ? JSON.stringify(experience) : null;
-    const educationJson = education ? JSON.stringify(education) : null;
-
-    // Preparar los datos para la inserción
     const [result] = await pool.query("INSERT INTO users SET ?", {
       name,
       email,
       linkedin,
       github,
       bio,
-      skills: skillsJson, // Convertimos skills a JSON
-      languages: languagesJson, // Convertimos languages a JSON
-      experience: experienceJson, // Convertimos experience a JSON
-      education: educationJson, // Convertimos education a JSON
+      skills: skills ? JSON.stringify(skills) : null,
+      languages: languages ? JSON.stringify(languages) : null,
+      experience: experience ? JSON.stringify(experience) : null,
+      education: education ? JSON.stringify(education) : null,
       phone,
-      created_at,
+      address,
+      license,
+      cv_summary,
+      age,
+      profile_picture_name,
+      created_at
     });
 
     res.status(201).json({ message: "Usuario creado con éxito", userId: result.insertId });
@@ -74,14 +99,17 @@ export const createUser = async (req, res) => {
   }
 };
 
-
-// Actualizar usuario por ID
+// Actualizar usuario con posible nueva imagen
 export const updateUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, linkedin, github, bio, skills, languages, experience, education, phone } = req.body;
+    const {
+      name, email, linkedin, github, bio, skills, languages,
+      experience, education, phone, address, license,
+      cv_summary, age
+    } = req.body;
 
-    if (!id) throw new Error("ID de usuario no proporcionado");
+    const newProfilePicture = req.file?.filename;
 
     const [existing] = await pool.query("SELECT * FROM users WHERE id = ?", [id]);
 
@@ -100,11 +128,22 @@ export const updateUserById = async (req, res) => {
       experience: experience ? JSON.stringify(experience) : existing[0].experience,
       education: education ? JSON.stringify(education) : existing[0].education,
       phone: phone ?? existing[0].phone,
+      address: address ?? existing[0].address,
+      license: license ?? existing[0].license,
+      cv_summary: cv_summary ?? existing[0].cv_summary,
+      age: age ?? existing[0].age,
+      profile_picture_name: newProfilePicture ?? existing[0].profile_picture_name
     };
 
     const updated_at = new Date();
+
     const [result] = await pool.query(
-      "UPDATE users SET name = ?, email = ?, linkedin = ?, github = ?, bio = ?, skills = ?, languages = ?, experience = ?, education = ?, phone = ?, updated_at = ? WHERE id = ?",
+      `UPDATE users SET 
+        name = ?, email = ?, linkedin = ?, github = ?, bio = ?, 
+        skills = ?, languages = ?, experience = ?, education = ?, phone = ?, 
+        address = ?, license = ?, cv_summary = ?, age = ?, profile_picture_name = ?, 
+        updated_at = ? 
+      WHERE id = ?`,
       [
         updatedUser.name,
         updatedUser.email,
@@ -116,8 +155,13 @@ export const updateUserById = async (req, res) => {
         updatedUser.experience,
         updatedUser.education,
         updatedUser.phone,
+        updatedUser.address,
+        updatedUser.license,
+        updatedUser.cv_summary,
+        updatedUser.age,
+        updatedUser.profile_picture_name,
         updated_at,
-        id,
+        id
       ]
     );
 

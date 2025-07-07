@@ -4,13 +4,7 @@ import { pool } from "../database/Conection.js";
 export const getAllProjects = async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM projects");
-
-    // Verificamos si se obtuvieron datos
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No se encontraron proyectos" });
-    }
-
-    // Si hay proyectos, los retornamos
+    if (rows.length === 0) return res.status(404).json({ message: "No se encontraron proyectos" });
     res.json(rows);
   } catch (error) {
     console.error("Error al obtener proyectos:", error.message);
@@ -21,14 +15,9 @@ export const getAllProjects = async (req, res) => {
 // Obtener proyecto por ID
 export const getProjectById = async (req, res) => {
   const { id } = req.params;
-
   try {
     const [rows] = await pool.query("SELECT * FROM projects WHERE id = ?", [id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Proyecto no encontrado" });
-    }
-
+    if (rows.length === 0) return res.status(404).json({ message: "Proyecto no encontrado" });
     res.json(rows[0]);
   } catch (error) {
     console.error("Error al obtener proyecto por ID:", error.message);
@@ -36,26 +25,23 @@ export const getProjectById = async (req, res) => {
   }
 };
 
+// Crear nuevo proyecto
 export const createProject = async (req, res) => {
   try {
-    const { name, description, status, user_id } = req.body;
+    const { name, description, technologies, status, user_id, link } = req.body;
+    const image = req.file?.filename || null;
+    const created_at = new Date();
 
-    // Verificamos que los campos necesarios no estén vacíos
     if (!name || !description || !status || !user_id) {
       return res.status(400).json({ error: "Faltan campos requeridos para crear el proyecto" });
     }
 
-    // Si la fecha de creación es obligatoria, puedes establecerla aquí
-    const created_at = new Date();
+    const techs = technologies ? JSON.stringify(technologies) : null;
 
-    // Preparar los datos para la inserción
-    const [result] = await pool.query("INSERT INTO projects (name, description, status, user_id, created_at) VALUES (?, ?, ?, ?, ?)", [
-      name,
-      description,
-      status,
-      user_id,
-      created_at
-    ]);
+    const [result] = await pool.query(
+      "INSERT INTO projects (name, description, technologies, status, user_id, link, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [name, description, techs, status, user_id, link, image, created_at]
+    );
 
     res.status(201).json({ message: "Proyecto creado con éxito", projectId: result.insertId });
   } catch (error) {
@@ -64,37 +50,38 @@ export const createProject = async (req, res) => {
   }
 };
 
-
-// Actualizar un proyecto por ID
+// Actualizar proyecto
 export const updateProjectById = async (req, res) => {
   const { id } = req.params;
-  const { title, description, technologies, status } = req.body;
+  const { name, description, technologies, status, link } = req.body;
+  const newImage = req.file?.filename;
 
   try {
-    // Verificamos si el proyecto existe
     const [existing] = await pool.query("SELECT * FROM projects WHERE id = ?", [id]);
-
-    if (existing.length === 0) {
-      return res.status(404).json({ message: "Proyecto no encontrado" });
-    }
+    if (existing.length === 0) return res.status(404).json({ message: "Proyecto no encontrado" });
 
     const updatedProject = {
-      title: title ?? existing[0].title,
+      name: name ?? existing[0].name,
       description: description ?? existing[0].description,
-      technologies: technologies ?? existing[0].technologies,
+      technologies: technologies ? JSON.stringify(technologies) : existing[0].technologies,
       status: status ?? existing[0].status,
+      link: link ?? existing[0].link,
+      image: newImage ?? existing[0].image
     };
 
     const updated_at = new Date();
+
     const [result] = await pool.query(
-      "UPDATE projects SET title = ?, description = ?, technologies = ?, status = ?, updated_at = ? WHERE id = ?",
+      "UPDATE projects SET name = ?, description = ?, technologies = ?, status = ?, link = ?, image = ?, updated_at = ? WHERE id = ?",
       [
-        updatedProject.title,
+        updatedProject.name,
         updatedProject.description,
         updatedProject.technologies,
         updatedProject.status,
+        updatedProject.link,
+        updatedProject.image,
         updated_at,
-        id,
+        id
       ]
     );
 
@@ -109,16 +96,13 @@ export const updateProjectById = async (req, res) => {
   }
 };
 
-// Eliminar un proyecto por ID
+// Eliminar proyecto
 export const deleteProjectById = async (req, res) => {
   const { id } = req.params;
 
   try {
     const [check] = await pool.query("SELECT id FROM projects WHERE id = ?", [id]);
-
-    if (check.length === 0) {
-      return res.status(404).json({ message: "Proyecto no encontrado" });
-    }
+    if (check.length === 0) return res.status(404).json({ message: "Proyecto no encontrado" });
 
     const [result] = await pool.query("DELETE FROM projects WHERE id = ?", [id]);
 
@@ -132,17 +116,14 @@ export const deleteProjectById = async (req, res) => {
     res.status(500).json({ error: "Error al eliminar el proyecto" });
   }
 };
-// Obtener proyectos por ID de usuario
+
+// Proyectos por usuario
 export const getProjectsByUserId = async (req, res) => {
   const { user_id } = req.params;
 
   try {
     const [rows] = await pool.query("SELECT * FROM projects WHERE user_id = ?", [user_id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No se encontraron proyectos para este usuario" });
-    }
-
+    if (rows.length === 0) return res.status(404).json({ message: "No se encontraron proyectos para este usuario" });
     res.json(rows);
   } catch (error) {
     console.error("Error al obtener proyectos por user_id:", error.message);

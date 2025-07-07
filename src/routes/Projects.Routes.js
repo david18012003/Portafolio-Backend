@@ -7,8 +7,10 @@ import {
   deleteProjectById,
   getProjectsByUserId,
 } from "../controllers/Projects.Controller.js";
+
 import { body, param } from "express-validator";
 import { handleValidationErrors } from "../middlewares/handleValidationErrors.js";
+import { upload } from "../middlewares/Uploads.js"; // Middleware para manejar imágenes
 
 const routesProjects = Router();
 
@@ -18,7 +20,6 @@ const routesProjects = Router();
 routesProjects.get("/proyectos", getAllProjects);
 
 /**
- /**
  * @desc Obtener todos los proyectos de un usuario por su ID
  */
 routesProjects.get(
@@ -40,17 +41,18 @@ routesProjects.get(
   [
     param("id")
       .isInt().withMessage("El ID debe ser un número entero")
-      .toInt(),  // Convertir el ID a un número entero
+      .toInt(),
     handleValidationErrors,
   ],
   getProjectById
 );
 
 /**
- * @desc Registrar un nuevo proyecto
+ * @desc Registrar un nuevo proyecto (con imagen)
  */
 routesProjects.post(
   "/registrar",
+  upload.single('image'), // Middleware multer para imagen (opcional)
   [
     body("title")
       .notEmpty().withMessage("El título es obligatorio")
@@ -59,7 +61,8 @@ routesProjects.post(
       .notEmpty().withMessage("La descripción es obligatoria"),
     body("status")
       .notEmpty().withMessage("El estado es obligatorio")
-      .isIn(["active", "inactive", "completed"]).withMessage("Estado inválido"),
+      .isIn(["active", "inactive", "completed", "En progreso", "En actualización", "completado"])
+      .withMessage("Estado inválido"),
     body("user_id")
       .isInt().withMessage("El user_id debe ser un número entero")
       .toInt(),
@@ -69,10 +72,11 @@ routesProjects.post(
 );
 
 /**
- * @desc Actualizar un proyecto por ID
+ * @desc Actualizar un proyecto por ID (con imagen opcional)
  */
 routesProjects.put(
   "/proyectos/:id",
+  upload.single('image'), // Permite cambiar o mantener imagen actual
   [
     param("id")
       .isInt().withMessage("El ID debe ser un número entero")
@@ -84,7 +88,8 @@ routesProjects.put(
       .optional().notEmpty().withMessage("La descripción no debe estar vacía"),
     body("status")
       .optional().notEmpty().withMessage("El estado no debe estar vacío")
-      .isIn(["active", "inactive", "completed"]).withMessage("Estado inválido"),
+      .isIn(["active", "inactive", "completed", "En progreso", "En actualización", "completado"])
+      .withMessage("Estado inválido"),
     handleValidationErrors,
   ],
   updateProjectById

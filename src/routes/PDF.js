@@ -1,190 +1,122 @@
 import express from "express";
 import PDFDocument from "pdfkit";
 import axios from "axios";
-import { pool } from "../database/Conection.js";
-import { generarRespuestaCohere } from "../controllers/Chatbot.Controller.js";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { pool } from "../database/Conection.js";
 
 const pdfRoutes = express.Router();
 
-// Utilidades para rutas absolutas
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-pdfRoutes.get("/pdf", async (req, res) => {
+pdfRoutes.get("/pdf/:userId", async (req, res) => {
   try {
-    // Obtener datos del usuario
-    const [perfilRows] = await pool.query("SELECT * FROM users LIMIT 1");
+    const { userId } = req.params;
+
+    if (!userId) throw new Error("ID de usuario no proporcionado");
+    const [perfilRows] = await pool.query(`SELECT * FROM users where id = ${userId}`);
     const perfil = perfilRows[0];
+    console.log("Perfil:", perfil);
 
-    // Obtener respuestas IA dentro del endpoint
-    const experienciaTexto = await generarRespuestaCohere(
-      "Resume tu experiencia laboral más relevante. muy breve."
-    );
-    const educacionTexto = await generarRespuestaCohere(
-      "Resume brevemente tu formación académica. muy breve."
-    );
-    const idiomasTexto = await generarRespuestaCohere(
-      "Enumera los idiomas que hablas con su nivel de dominio. muy breve."
-    );
-    const proyectosTexto = await generarRespuestaCohere(
-      "Menciona tus proyectos más importantes con tecnologías usadas. muy breve."
-    );
-    const hobbyTexto = await generarRespuestaCohere(
-      "Enumera tus hobbies. muy breve. son estos 💻 Programación y Desarrollo,📱 Testing de Software (QA), 📚 Aprendizaje Continuo, 🧑‍💻 Optimización de Código, 🏋️‍♂️ Ejercicio y Bienestar, 🌐 Tecnología y Nuevas Innovaciones, 🧩 Juegos de Lógica o Retos Mentales"
-    );
+    const [experiencias] = await pool.query("SELECT * FROM work_experience WHERE user_id = ?", [userId]);
+    const [educaciones] = await pool.query("SELECT * FROM education WHERE user_id = ?", [userId]);
+    const [idiomas] = await pool.query("SELECT * FROM languages WHERE user_id = ?", [userId]);
+    const [proyectos] = await pool.query("SELECT * FROM projects WHERE user_id = ?", [userId]);
 
-    // Habilidades (asumiendo que perfil.skills es un JSON con arreglo)
-    const habilidades = perfil.skills
-      ? JSON.parse(perfil.skills).join(", ")
-      : "Sin habilidades";
+    const habilidades = perfil.skills ? JSON.parse(perfil.skills).join(", ") : "Sin habilidades";
+
+    const experienciaTexto = experiencias.map(exp => `• ${exp.position} en ${exp.company_name} (${exp.type})\n  Funciones: ${exp.functions}\n`).join("\n");
+    const educacionTexto = educaciones.map(edu => `• ${edu.title} - ${edu.institution} (${edu.level})\n  Estado: ${edu.status}`).join("\n");
+    const idiomasTexto = idiomas.map(idioma => `• ${idioma.language} - Nivel: ${idioma.level}`).join("\n");
+    const proyectosTexto = proyectos.map(proy => `• ${proy.title}\n  Tecnologías: ${proy.technologies || "-"}\n  Link: ${proy.link || "-"}`).join("\n\n");
+    const hobbyTexto = "💻 Programación y Desarrollo, 📱 Testing de Software (QA), 📚 Aprendizaje Continuo, 🧑‍💻 Optimización de Código, 🏋️ Ejercicio y Bienestar, 🌐 Tecnología y Nuevas Innovaciones, 🧩 Juegos de Lógica o Retos Mentales";
 
     const doc = new PDFDocument({ size: "A4", margin: 0 });
+    doc.registerFont('OpenSans', path.join(__dirname, '../assets/fonts/Open_Sans/static/OpenSans-Regular.ttf'));
+doc.font('OpenSans'); // Establece como fuente por defecto
+
 
     res.setHeader("Content-disposition", "attachment; filename=Cesar_David_Carrillo_RodriguezCV.pdf");
     res.setHeader("Content-type", "application/pdf");
     doc.pipe(res);
 
-    // Fondo columna izquierda
     doc.rect(0, 0, 180, 842).fill("#2c2c2c");
 
-    // Foto del perfil
-    if (perfil.photoUrl) {
-      try {
-        const imageBuffer = await axios.get(perfil.photoUrl, {
-          responseType: "arraybuffer",
-        });
-        doc.image(imageBuffer.data, 40, 40, { width: 100, height: 100 });
-      } catch (error) {
-        console.log("No se pudo cargar la imagen:", error.message);
-      }
+    const imagePath = perfil.profile_picture_name ? path.join(__dirname, "../../uploads/", perfil.profile_picture_name) : null;
+    if (imagePath && fs.existsSync(imagePath)) {
+      
+    const radius = 50;
+const centerX = 90;
+const centerY = 90;
+const imageX = centerX - radius;
+const imageY = centerY - radius;
+
+// 👇 recorta todo lo que venga después dentro del círculo
+doc.save(); // guarda el estado antes del clip
+doc.circle(centerX, centerY, radius).clip();
+doc.image(imagePath, imageX, imageY, {
+  width: radius * 2,
+  height: radius * 2,
+});
+doc.restore();
     }
+    console.log("Ruta de la imagen:", imagePath);
+    
 
-    // Información de contacto
     let y = 160;
-    doc.fillColor("#fff").fontSize(10).text("Contact", 30, y);
-    y += 20;
+    doc.fillColor("#fff").fontSize(10).text("Contact", 30, y); y += 20;
+    doc.image(path.join(__dirname, "../assets/icons/telefono.png"), 30, y, { width: 10, height: 10 });
+    doc.text(perfil.phone || "-", 45, y); y += 20;
+    doc.image(path.join(__dirname, "../assets/icons/email.png"), 30, y, { width: 10, height: 10 });
+    doc.text(perfil.email || "-", 45, y); y += 20;
+    doc.image(path.join(__dirname, "../assets/icons/ubicacion.png"), 30, y, { width: 10, height: 10 });
+    doc.text(perfil.address || "Dirección no disponible", 45, y); y += 30;
 
-    doc.image(path.join(__dirname, "../assets/icons/telefono.png"), 30, y, {
-      width: 10,
-      height: 10,
-    });
-    doc.text(perfil.phone || "-", 45, y);
-    y += 20;
-
-    doc.image(path.join(__dirname, "../assets/icons/email.png"), 30, y, {
-      width: 10,
-      height: 10,
-    });
-    doc.text(perfil.email || "-", 45, y);
-    y += 20;
-
-    doc.image(path.join(__dirname, "../assets/icons/ubicacion.png"), 30, y, {
-      width: 10,
-      height: 10,
-    });
-    doc.text(perfil.address || "Dirección no disponible", 45, y);
-    y += 30;
-
-    // Redes sociales
-    doc.fontSize(8).fillColor("#fff").text("Social Account", 30, y);
-    y += 15;
-
-    doc.image("src/assets/icons/linkedin.png", 30, y, {
-      width: 10,
-      height: 10,
-    });
-    doc.text(perfil.linkedin || "-", 45, y, {
-      width: 120,
-      lineBreak: true,
-    });
-    y += 25;
-
+    doc.fontSize(8).fillColor("#fff").text("Social Account", 30, y); y += 15;
+    doc.image("src/assets/icons/linkedin.png", 30, y, { width: 10, height: 10 });
+    doc.text(perfil.linkedin || "-", 45, y, { width: 120 }); y += 25;
     doc.image("src/assets/icons/github.png", 30, y, { width: 10, height: 10 });
-    doc.text(perfil.github || "-", 45, y, {
-      width: 120,
-      lineBreak: true,
-    });
-    y += 25;
+    doc.text(perfil.github || "-", 45, y, { width: 120 }); y += 25;
 
-    // Habilidades
-    doc.moveDown().text("Skills", 30, y);
-    y += 15;
-    doc.text(habilidades, 30, y, { width: 120 });
-    y += 40;
+    doc.moveDown().text("Skills", 30, y); y += 15;
+    doc.text(habilidades, 30, y, { width: 120 }); y += 40;
 
-    // Hobbies
-    doc.moveDown().text("Hobby", 30, y);
-    y += 15;
+    doc.moveDown().text("Hobby", 30, y); y += 15;
     doc.text(hobbyTexto || "Sin hobbies", 30, y, { width: 120 });
 
-    // Volver a columna derecha (contenido principal)
     const rightX = 200;
     let rightY = 40;
 
-    // Nombre y bio
-    doc
-      .fillColor("#000")
-      .fontSize(20)
-      .text(perfil.name || "Sin nombre", rightX, rightY);
+    doc.fillColor("#000").fontSize(20).text(perfil.name || "Sin nombre", rightX, rightY);
     rightY += 30;
-    doc
-      .fontSize(12)
-      .fillColor("#444")
-      .text(perfil.bio || "Desarrollador Web", rightX, rightY);
+    doc.fontSize(12).fillColor("#444").text(perfil.bio || "Desarrollador Web", rightX, rightY);
 
-    // Perfil
     rightY += 40;
     doc.fontSize(14).fillColor("#0056b3").text("Perfil", rightX, rightY);
     rightY += 20;
-    doc
-      .fontSize(10)
-      .fillColor("#000")
-      .text(experienciaTexto || "Sin información.", rightX, rightY, {
-        width: 370,
-      });
+    doc.fontSize(10).fillColor("#000").text(perfil.cv_summary || "Sin perfil.", rightX, rightY, { width: 370 });
 
-    // Experiencia
-    rightY += 100;
-    doc
-      .fontSize(14)
-      .fillColor("#0056b3")
-      .text("Experiencia ", rightX, rightY);
+    rightY += 150;
+    doc.fontSize(14).fillColor("#0056b3").text("Experiencia ", rightX, rightY);
     rightY += 20;
-    doc
-      .fontSize(10)
-      .fillColor("#000")
-      .text(experienciaTexto || "Sin experiencia.", rightX, rightY, {
-        width: 370,
-      });
+    doc.fontSize(10).fillColor("#000").text(experienciaTexto || "Sin experiencia.", rightX, rightY, { width: 370 });
 
-    // Educación
     rightY += 100;
-    doc.fontSize(14).fillColor("#0056b3").text("Educacion", rightX, rightY);
+    doc.fontSize(14).fillColor("#0056b3").text("Educación", rightX, rightY);
     rightY += 20;
-    doc
-      .fontSize(10)
-      .fillColor("#000")
-      .text(educacionTexto || "Sin formación.", rightX, rightY, { width: 370 });
+    doc.fontSize(10).fillColor("#000").text(educacionTexto || "Sin formación.", rightX, rightY, { width: 370 });
 
-    // Idiomas
     rightY += 100;
     doc.fontSize(14).fillColor("#0056b3").text("Idiomas", rightX, rightY);
     rightY += 20;
-    doc
-      .fontSize(10)
-      .fillColor("#000")
-      .text(idiomasTexto || "Sin idiomas.", rightX, rightY, { width: 370 });
+    doc.fontSize(10).fillColor("#000").text(idiomasTexto || "Sin idiomas.", rightX, rightY, { width: 370 });
 
-    // Proyectos
     rightY += 100;
     doc.fontSize(14).fillColor("#0056b3").text("Proyectos", rightX, rightY);
     rightY += 20;
-    doc
-      .fontSize(10)
-      .fillColor("#000")
-      .text(proyectosTexto || "Sin proyectos.", rightX, rightY, { width: 370 });
+    doc.fontSize(10).fillColor("#000").text(proyectosTexto || "Sin proyectos.", rightX, rightY, { width: 370 });
 
     doc.end();
   } catch (error) {

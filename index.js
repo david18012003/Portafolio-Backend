@@ -1,6 +1,7 @@
 import express from 'express';
-import body_parser from 'body-parser';
+import bodyParser from 'body-parser'; // 🔄 nombre estándar (opcional)
 import cors from 'cors';
+
 import routesProjects from './src/routes/Projects.Routes.js';
 import routesUsers from './src/routes/User.Routes.js';
 import routesChatbot from './src/routes/Chatbot.Routes.js';
@@ -9,20 +10,26 @@ import pdfRoutes from './src/routes/PDF.js';
 const app = express();
 const port = 3000;
 
-app.use(body_parser.json());
-app.use(body_parser.urlencoded({ extend: false }));
-
+// 📦 Middleware global
 app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false })); // ❗ corregido: extend → extended
 
+// 📂 Servir archivos estáticos
+app.use('/uploads', express.static('uploads'));
 
+// 🧪 Ruta de prueba
 app.get('/', (req, res) => {
-    res.send('Welcome to the Backend!');
+  res.send('Welcome to the Backend!');
 });
+
+// 📌 Rutas API
 app.use('/api/projects', routesProjects);
 app.use('/api/users', routesUsers);
 app.use('/api/chatbot', routesChatbot);
 app.use('/api', pdfRoutes);
 
+// 🚀 Servidor corriendo
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+  console.log(`🟢 Server is running at http://localhost:${port}`);
 });
