@@ -1,16 +1,25 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import path from "path"; // ✅ Importación necesaria
 
+// 📂 Directorio donde se guardan las imágenes
 const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueName = `project_${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
+// Middleware para subir imágenes de usuario
+export const uploadUser = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      cb(null, `user_${Date.now()}${path.extname(file.originalname)}`);
+    }
+  })
 });
 
-export const upload = multer({ storage });
+// Middleware para subir imágenes de proyectos
+export const uploadProject = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      cb(null, `project_${Date.now()}${path.extname(file.originalname)}`);
+    }
+  })
+});

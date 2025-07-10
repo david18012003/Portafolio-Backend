@@ -10,7 +10,7 @@ import {
 
 import { body, param } from "express-validator";
 import { handleValidationErrors } from "../middlewares/handleValidationErrors.js";
-import { upload } from "../middlewares/Uploads.js";
+import { uploadProject } from "../middlewares/Uploads.js";
 
 const routesProjects = Router();
 
@@ -40,7 +40,7 @@ routesProjects.get(
 // Registrar nuevo proyecto
 routesProjects.post(
   "/registrar",
-  upload.single("image"),
+  uploadProject.single("image"),
   [
     body("title")
       .notEmpty().withMessage("El título es obligatorio")
@@ -59,7 +59,7 @@ routesProjects.post(
 // Actualizar proyecto
 routesProjects.put(
   "/actualizar/:id",
-  upload.single("image"),
+  uploadProject.single("image"),
   [
     param("id").isInt().withMessage("El ID debe ser un número entero").toInt(),
     body("title")

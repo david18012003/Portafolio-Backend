@@ -12,7 +12,10 @@ export const uploadUserPhoto = async (req, res) => {
     }
 
     // Actualizar campo profile_picture_name
-    await pool.query("UPDATE users SET profile_picture_name = ? WHERE id = ?", [fileName, id]);
+    await pool.query("UPDATE users SET profile_picture_name = ? WHERE id = ?", [
+      fileName,
+      id,
+    ]);
 
     res.json({ message: "Imagen subida correctamente", file: fileName });
   } catch (error) {
@@ -57,46 +60,100 @@ export const getUserById = async (req, res) => {
 };
 
 // Crear nuevo usuario con imagen
+// export const createUser = async (req, res) => {
+//   try {
+//     const {
+//       name,
+//       email,
+//       password,
+//       linkedin,
+//       github,
+//       bio,
+//       skills,
+//       languages,
+//       experience,
+//       education,
+//       phone,
+//       address,
+//       license,
+//       cv_summary,
+//       age,
+//     } = req.body;
+
+//     const profile_picture_name = req.file?.filename || null;
+
+//     if (!name || !email || !phone || !password) {
+//       return res
+//         .status(400)
+//         .json({ error: "Faltan campos requeridos para crear el usuario" });
+//     }
+
+//     const created_at = new Date();
+
+//     const [result] = await pool.query("INSERT INTO users SET ?", {
+//       name,
+//       email,
+//       password, // Asegúrate de hashear la contraseña antes de guardarla
+//       linkedin,
+//       github,
+//       bio,
+//       skills: skills ? JSON.stringify(skills) : null,
+//       languages: languages ? JSON.stringify(languages) : null,
+//       experience: experience ? JSON.stringify(experience) : null,
+//       education: education ? JSON.stringify(education) : null,
+//       phone,
+//       address,
+//       license,
+//       cv_summary,
+//       age,
+//       profile_picture_name,
+//       created_at,
+//     });
+
+//     res
+//       .status(201)
+//       .json({ message: "Usuario creado con éxito", userId: result.insertId });
+//   } catch (error) {
+//     console.error("Error al crear el usuario:", error.message);
+//     res
+//       .status(500)
+//       .json({ error: "Error al crear el usuario por " + error.message });
+//   }
+// };
+
 export const createUser = async (req, res) => {
   try {
-    const {
-      name, email, password, linkedin, github, bio, skills, languages,
-      experience, education, phone, address, license,
-      cv_summary, age
-    } = req.body;
-
+    const { name, email, password, phone } = req.body;
     const profile_picture_name = req.file?.filename || null;
 
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ error: "Faltan campos requeridos para crear el usuario" });
+    // Validación de campos obligatorios
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({
+        error: "Faltan campos requeridos: nombre, email, contraseña o teléfono.",
+      });
     }
 
     const created_at = new Date();
 
+    // Insertar usuario con datos mínimos
     const [result] = await pool.query("INSERT INTO users SET ?", {
       name,
       email,
-      password, // Asegúrate de hashear la contraseña antes de guardarla
-      linkedin,
-      github,
-      bio,
-      skills: skills ? JSON.stringify(skills) : null,
-      languages: languages ? JSON.stringify(languages) : null,
-      experience: experience ? JSON.stringify(experience) : null,
-      education: education ? JSON.stringify(education) : null,
+      password, // Nota: deberías hashear la contraseña antes de guardarla
       phone,
-      address,
-      license,
-      cv_summary,
-      age,
       profile_picture_name,
-      created_at
+      created_at,
     });
 
-    res.status(201).json({ message: "Usuario creado con éxito", userId: result.insertId });
+    return res.status(201).json({
+      message: "Usuario registrado con éxito",
+      userId: result.insertId,
+    });
   } catch (error) {
     console.error("Error al crear el usuario:", error.message);
-    res.status(500).json({ error: "Error al crear el usuario por "+ error.message });
+    res.status(500).json({
+      error: "Error al crear el usuario: " + error.message,
+    });
   }
 };
 
@@ -105,14 +162,28 @@ export const updateUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      name, email,password, linkedin, github, bio, skills, languages,
-      experience, education, phone, address, license,
-      cv_summary, age
+      name,
+      email,
+      password,
+      linkedin,
+      github,
+      bio,
+      skills,
+      languages,
+      experience,
+      education,
+      phone,
+      address,
+      license,
+      cv_summary,
+      age,
     } = req.body;
 
     const newProfilePicture = req.file?.filename;
 
-    const [existing] = await pool.query("SELECT * FROM users WHERE id = ?", [id]);
+    const [existing] = await pool.query("SELECT * FROM users WHERE id = ?", [
+      id,
+    ]);
 
     if (existing.length === 0) {
       return res.status(404).json({ message: "Usuario no encontrado" });
@@ -125,16 +196,19 @@ export const updateUserById = async (req, res) => {
       linkedin: linkedin ?? existing[0].linkedin,
       github: github ?? existing[0].github,
       bio: bio ?? existing[0].bio,
-      skills: skills ? JSON.stringify(skills) : existing[0].skills,
-      languages: languages ? JSON.stringify(languages) : existing[0].languages,
-      experience: experience ? JSON.stringify(experience) : existing[0].experience,
+      skills: skills ?? existing[0].skills,
+      languages: languages ?? existing[0].languages,
+      experience: experience
+        ? JSON.stringify(experience)
+        : existing[0].experience,
       education: education ? JSON.stringify(education) : existing[0].education,
       phone: phone ?? existing[0].phone,
       address: address ?? existing[0].address,
       license: license ?? existing[0].license,
       cv_summary: cv_summary ?? existing[0].cv_summary,
       age: age ?? existing[0].age,
-      profile_picture_name: newProfilePicture ?? existing[0].profile_picture_name
+      profile_picture_name:
+        newProfilePicture ?? existing[0].profile_picture_name,
     };
 
     const updated_at = new Date();
@@ -164,7 +238,7 @@ export const updateUserById = async (req, res) => {
         updatedUser.age,
         updatedUser.profile_picture_name,
         updated_at,
-        id
+        id,
       ]
     );
 
