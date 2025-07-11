@@ -48,7 +48,7 @@ routesProjects.post(
     body("description").notEmpty().withMessage("La descripción es obligatoria"),
     body("status")
       .notEmpty().withMessage("El estado es obligatorio")
-      .isIn(["active", "inactive", "completed", "En progreso", "En actualización", "completado"])
+      .isIn(["En progreso", "En actualización", "completado"])
       .withMessage("Estado inválido"),
     body("user_id").isInt().withMessage("El user_id debe ser un número entero").toInt(),
     handleValidationErrors,
@@ -68,7 +68,7 @@ routesProjects.put(
     body("description").optional().notEmpty().withMessage("La descripción no debe estar vacía"),
     body("status")
       .optional()
-      .isIn(["active", "inactive", "completed", "En progreso", "En actualización", "completado"])
+      .isIn(["En progreso", "En actualización", "completado"])
       .withMessage("Estado inválido"),
     handleValidationErrors,
   ],

@@ -31,17 +31,17 @@ export const createProject = async (req, res) => {
     const { title, description, technologies, status, user_id, link } = req.body;
     const image = req.file?.filename || null;
     const created_at = new Date();
+console.log('TECH:', req.body.technologies);
+console.log('TYPE:', typeof req.body.technologies);
 
     if (!title || !description || !status || !user_id) {
       return res.status(400).json({ error: "Faltan campos requeridos para crear el proyecto" });
     }
 
-    const techs = technologies ? JSON.stringify(technologies) : null;
-
     const [result] = await pool.query(
       `INSERT INTO projects (title, description, technologies, status, user_id, link, image, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, techs, status, user_id, link, image, created_at]
+      [title, description, technologies, status, user_id, link, image, created_at]
     );
 
     res.status(201).json({ message: "Proyecto creado con éxito", projectId: result.insertId });
@@ -64,7 +64,7 @@ export const updateProjectById = async (req, res) => {
     const updatedProject = {
       title: title ?? existing[0].title,
       description: description ?? existing[0].description,
-      technologies: technologies ? JSON.stringify(technologies) : existing[0].technologies,
+      technologies: technologies ? technologies : existing[0].technologies,
       status: status ?? existing[0].status,
       link: link ?? existing[0].link,
       image: newImage ?? existing[0].image,
